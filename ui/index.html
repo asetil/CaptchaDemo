@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Captcha Demo</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        #captcha-img { border: 1px solid #ccc; width: 180px; height: 70px; }
+        input { margin-top: 10px; padding: 5px; }
+        button { margin-top: 10px; padding: 6px 12px; }
+        #result { margin-top: 15px; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <h2>Captcha Demo</h2>
+
+    <div>
+        <img id="captcha-img" />
+        <button onclick="loadCaptcha()">↻ Yenile</button>
+    </div>
+
+    <div>
+        <input id="captcha-input" type="text" placeholder="Captcha gir" />
+    </div>
+
+    <button onclick="submitCaptcha()">Gönder</button>
+
+    <div id="result"></div>
+
+<script>
+
+let captchaToken = "";
+
+function loadCaptcha(clearResult=true) {
+    fetch("https://localhost:7044/captcha/generate")
+        .then(res => res.json())
+        .then(data => {
+            captchaToken = data.token;
+            document.getElementById("captcha-img").src = data.imageBase64;
+            document.getElementById("captcha-input").value = "";
+			if(clearResult)
+				document.getElementById("result").innerText = "";
+        })
+        .catch(err => console.error(err));
+}
+
+function submitCaptcha() {
+    const userInput = document.getElementById("captcha-input").value;
+
+    fetch("https://localhost:7044/captcha/validate", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            token: captchaToken,
+            userInput: userInput
+        })
+    })
+    .then(async res => {
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+    })
+    .then(() => {
+		loadCaptcha(false);
+        document.getElementById("result").innerText = "✔ Doğru";
+        document.getElementById("result").style.color = "green";
+    })
+    .catch(() => {
+        document.getElementById("result").innerText = "❌ Hatalı";
+        document.getElementById("result").style.color = "red";
+    });
+}
+loadCaptcha();
+
+</script>
+</body>
+</html>
